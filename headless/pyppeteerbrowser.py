@@ -21,7 +21,8 @@ class BrowserError(Exception):
 class Browser:
     """Wrap a Pyppeteer instance"""
 
-    def __init__(self, binary: str):
+    def __init__(self, binary: str = 'default', viewport: str = VIEWPORT,
+                 user_agent: str = USER_AGENT):
         '''
         @params binary: the path to the Chrome/Chromium binary (you can use `default`)
         '''
@@ -29,6 +30,8 @@ class Browser:
         self.args = ['--no-sandbox', '--start-fullscreen']
         self.browser = None
         self.page = None
+        self.viewport = viewport
+        self.user_agent = user_agent
 
     async def __aenter__(self):
         '''To use into a with statement'''
@@ -50,11 +53,11 @@ class Browser:
             try:
                 self.browser = await launch(args=args, executablePath=self.binary,
                                             ignoreHTTPSErrors=True)
-            except OSError:
-                raise BrowserError('Binary not found: {}'.format(self.binary))
+            except OSError as browser_error:
+                raise BrowserError('Binary not found: {}'.format(self.binary)) from browser_error
         self.page = await self.browser.newPage()
-        await self.set_viewport(self.page, VIEWPORT)
-        await self.page.setUserAgent(USER_AGENT)
+        await self.set_viewport(self.page, self.viewport)
+        await self.page.setUserAgent(self.user_agent)
 
     async def finish(self):
         '''Stop the browser'''
